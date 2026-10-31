@@ -1,0 +1,32 @@
+# Moves a ticket's card to "In Progress" on the Acme Grocer ops board the moment an agent
+# claims it (ops/next-ticket adds the `in-progress` label). Closing still moves it to Done
+# (the board's built-in workflow). PROJECT_TOKEN is a classic token with only the `project`
+# scope, stored as a repo secret: the agents never see it.
+name: Board status
+on:
+  issues:
+    types: [labeled]
+permissions: {}
+jobs:
+  in-progress:
+    if: github.event.label.name == 'in-progress'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Move card to In Progress
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          OWNER: ${{ github.repository_owner }}
+          BOARD: Acme Grocer ops
+        run: |
+          set -euo pipefail
+          NUM=$(gh project list --owner "$OWNER" --format json --jq ".projects[] | select(.title == \"$BOARD\") | .number")
+          PID=$(gh project view "$NUM" --owner "$OWNER" --format json --jq .id)
+          FIELD=$(gh project field-list "$NUM" --owner "$OWNER" --format json --jq '.fields[] | select(.name == "Status")')
+          FID=$(jq -r .id <<<"$FIELD")
+          OPT=$(jq -r '.options[] | select(.name == "In Progress") | .id' <<<"$FIELD")
+          # item-add returns the existing card when the issue is already on the board
+          ITEM=$(gh project item-add "$NUM" --owner "$OWNER" --url "$ISSUE_URL" --format json --jq .id)
+          gh project item-edit --project-id "$PID" --id "$ITEM" --field-id "$FID" --single-select-option-id "$OPT"
+          echo "moved $ISSUE_URL to In Progress"
