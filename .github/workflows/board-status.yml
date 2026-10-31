@@ -1,7 +1,8 @@
 # Moves a ticket's card to "In Progress" on the Acme Grocer ops board the moment an agent
 # claims it (ops/next-ticket adds the `in-progress` label). Closing still moves it to Done
 # (the board's built-in workflow). PROJECT_TOKEN is a classic token with only the `project`
-# scope, stored as a repo secret: the agents never see it.
+# scope, stored as a repo secret: the agents never see it. Plain GraphQL, because the
+# `gh project` commands also demand read:org + read:discussion, which this does not need.
 name: Board status
 on:
   issues:
@@ -16,18 +17,24 @@ jobs:
       - name: Move card to In Progress
         env:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          ISSUE_ID: ${{ github.event.issue.node_id }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
-          # "@me" = the token's own account; a user name needs an extra scope to resolve ("unknown owner type").
-          OWNER: "@me"
           BOARD: Acme Grocer ops
         run: |
           set -euo pipefail
-          NUM=$(gh project list --owner "$OWNER" --format json --jq ".projects[] | select(.title == \"$BOARD\") | .number")
-          PID=$(gh project view "$NUM" --owner "$OWNER" --format json --jq .id)
-          FIELD=$(gh project field-list "$NUM" --owner "$OWNER" --format json --jq '.fields[] | select(.name == "Status")')
-          FID=$(jq -r .id <<<"$FIELD")
-          OPT=$(jq -r '.options[] | select(.name == "In Progress") | .id' <<<"$FIELD")
-          # item-add returns the existing card when the issue is already on the board
-          ITEM=$(gh project item-add "$NUM" --owner "$OWNER" --url "$ISSUE_URL" --format json --jq .id)
-          gh project item-edit --project-id "$PID" --id "$ITEM" --field-id "$FID" --single-select-option-id "$OPT"
+          BOARD_JSON=$(gh api graphql -f query='
+            query { viewer { projectsV2(first: 50) { nodes { id title
+              field(name: "Status") { ... on ProjectV2SingleSelectField { id options { id name } } } } } } }' \
+            --jq ".data.viewer.projectsV2.nodes[] | select(.title == \"$BOARD\")")
+          PID=$(jq -r .id <<<"$BOARD_JSON")
+          FID=$(jq -r .field.id <<<"$BOARD_JSON")
+          OPT=$(jq -r '.field.options[] | select(.name == "In Progress") | .id' <<<"$BOARD_JSON")
+          # Returns the existing card when the issue is already on the board.
+          ITEM=$(gh api graphql -f query='
+            mutation($p: ID!, $c: ID!) { addProjectV2ItemById(input: {projectId: $p, contentId: $c}) { item { id } } }' \
+            -f p="$PID" -f c="$ISSUE_ID" --jq .data.addProjectV2ItemById.item.id)
+          gh api graphql -f query='
+            mutation($p: ID!, $i: ID!, $f: ID!, $o: String!) {
+              updateProjectV2ItemFieldValue(input: {projectId: $p, itemId: $i, fieldId: $f, value: {singleSelectOptionId: $o}}) { projectV2Item { id } } }' \
+            -f p="$PID" -f i="$ITEM" -f f="$FID" -f o="$OPT" --silent
           echo "moved $ISSUE_URL to In Progress"
