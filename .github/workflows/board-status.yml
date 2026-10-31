@@ -17,7 +17,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
-          OWNER: ${{ github.repository_owner }}
+          # "@me" = the token's own account; a user name needs an extra scope to resolve ("unknown owner type").
+          OWNER: "@me"
           BOARD: Acme Grocer ops
         run: |
           set -euo pipefail
