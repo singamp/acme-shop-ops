@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# The agents' `guidal`: always the acme-shop project. The real CLI ignores
+# GUIDAL_PROJECT_ID and would otherwise use whatever project was last switched to.
+# GUIDAL_BIN is the real CLI's path (set by ops/start-role.sh).
+exec "${GUIDAL_BIN:?GUIDAL_BIN not set}" --org "${GUIDAL_ORG_ID:?}" --project "${GUIDAL_PROJECT_ID:?}" "$@"

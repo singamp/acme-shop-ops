@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Waits for the next open ticket for one role and prints it. Used by every agent:
+#   ops/next-ticket developer|support|capacity|data
+# Checks GitHub every 15 s (no AI tokens spent while waiting). Gives up after
+# NEXT_TICKET_WAIT seconds (start-role.sh sets 540) and prints "no ticket yet, run me again".
+# Prints a line every minute so an agent never mistakes the wait for a hang (Codex did, 31 Oct).
+# A GitHub error is printed and exits 1, never mistaken for an empty queue.
+# Needs GH_TOKEN (the acme-shop-ops-only token) and OPS_REPO=<owner>/acme-shop-ops.
+set -uo pipefail
+ROLE="${1:?usage: ops/next-ticket developer|support|capacity|data}"
+case "$ROLE" in developer|support|capacity|data) ;; *) echo "unknown role: $ROLE"; exit 2 ;; esac
+: "${GH_TOKEN:?GH_TOKEN not set (the acme-shop-ops token)}" "${OPS_REPO:?OPS_REPO not set}"
+TAKE="${TAKE:-$(cat "$HOME/guidal-demo/.take" 2>/dev/null || echo 1)}"
+WAIT=${NEXT_TICKET_WAIT:-90}
+deadline=$((SECONDS + WAIT))
+echo "waiting for a $ROLE ticket: checking GitHub every 15 s for up to $WAIT s"
+while [ "$SECONDS" -lt "$deadline" ]; do
+  if ! n=$(gh issue list -R "$OPS_REPO" --state open --search "label:$ROLE -label:in-progress sort:created-asc" \
+        --limit 1 --json number --jq '.[0].number // empty' 2>&1); then
+    echo "GITHUB ERROR (not an empty queue): $n"
+    exit 1
+  fi
+  if [ -n "$n" ]; then
+    gh issue edit "$n" -R "$OPS_REPO" --add-label "in-progress,take-$TAKE" >/dev/null
+    echo "TICKET #$n for $ROLE (when done: gh issue comment $n -R $OPS_REPO --body '<what you did>' && gh issue close $n -R $OPS_REPO)"
+    gh issue view "$n" -R "$OPS_REPO" --json title,body,author --jq '"Title: \(.title)\nFrom: \(.author.login)\n\n\(.body)"'
+    exit 0
+  fi
+  sleep 15
+  [ $((SECONDS % 60)) -lt 15 ] && echo "still waiting, not stuck (${SECONDS}s of ${WAIT}s)"
+done
+echo "no ticket yet, run me again"

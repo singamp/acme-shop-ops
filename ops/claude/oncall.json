@@ -1,0 +1,61 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__guidal__list_projects",
+      "mcp__guidal__list_services",
+      "mcp__guidal__get_service",
+      "mcp__guidal__query_logs",
+      "mcp__guidal__health_check",
+      "mcp__guidal__get_build_status",
+      "mcp__guidal__search_capabilities",
+      "mcp__guidal__get_capability_schema",
+      "mcp__guidal__list_all_capabilities",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh issue view:*)"
+    ],
+    "deny": [
+      "mcp__guidal__call_capability",
+      "mcp__guidal__get_registry_credentials",
+      "mcp__guidal__create_project",
+      "mcp__guidal__create_service",
+      "mcp__guidal__deploy_service",
+      "mcp__guidal__create_database",
+      "mcp__guidal__link_database",
+      "mcp__guidal__set_env_vars",
+      "mcp__guidal__deploy_from_source",
+      "Bash(guidal:*)",
+      "Bash(~/.venvs/guidal-staging-demo/bin/guidal:*)",
+      "Bash(gh issue delete:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh secret:*)",
+      "Edit",
+      "Write",
+      "WebSearch",
+      "Bash(/opt/miniconda3/bin/guidal:*)",
+      "Bash(~/.local/bin/guidal:*)",
+      "Bash(python -m guidal_cli:*)",
+      "Bash(env:*)"
+    ],
+    "defaultMode": "default"
+  },
+  "enabledMcpjsonServers": [
+    "guidal"
+  ],
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "600000"
+  },
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "*.staging.guidal.cloud"
+      ]
+    }
+  }
+}
