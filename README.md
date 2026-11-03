@@ -1,5 +1,7 @@
 # Acme Grocer
 
+The issues in this repo are from the recorded demo run on 31 Oct 2026. The worker bug (`qty` instead of `quantity`) was planted on purpose for the on-call and developer agents to find.
+
 A small grocery shop running on Guidal (project `acme-shop`). One codebase, one image, three jobs:
 
 | Guidal resource | What runs | Code |
