@@ -1,6 +1,6 @@
 # Acme Grocer
 
-The issues in this repo are from the recorded demo run on 31 Oct 2026. The worker bug (`qty` instead of `quantity`) was planted on purpose for the on-call and developer agents to find.
+A demo app for [Guidal](https://guidal.ai), the agentic cloud platform. The issues in this repo are from the recorded demo run on 31 Oct 2026. The worker bug (`qty` instead of `quantity`) was planted on purpose for the on-call and developer agents to find.
 
 A small grocery shop running on Guidal (project `acme-shop`). One codebase, one image, three jobs:
 
@@ -31,3 +31,13 @@ Five AI agents run this shop: on-call, support, data, developer and capacity. Ea
 - `ops/claude/*.json`: the Claude Code permissions. Guidal's read tools are allowed; anything that changes the platform is denied unless that role needs it.
 - `ops/start-role.sh <role>`: opens one agent in a terminal with only that role's access.
 - `ops/next-ticket <role>`: waits for the next open ticket with that role's label and claims it.
+
+## Security
+
+Report vulnerabilities in Guidal privately, as described in the
+[Guidal security policy](https://github.com/guidal-cloud/.github/blob/main/SECURITY.md). The
+worker bug above was planted on purpose and is not a vulnerability.
+
+## License
+
+[MIT](LICENSE)
